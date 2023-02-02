@@ -1,9 +1,26 @@
-[gd_scene load_steps=2 format=3 uid="uid://dap7tcx7a4j20"]
+[gd_scene load_steps=4 format=3 uid="uid://dap7tcx7a4j20"]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.gd" id="1_opbhl"]
+[ext_resource type="Script" path="res://prefabs/player/PlayerCam.gd" id="2_0pl66"]
 
-[node name="PlayerController" type="Node2D"]
+[sub_resource type="CircleShape2D" id="CircleShape2D_ekhvv"]
+
+[node name="PlayerController" type="CharacterBody2D"]
+collision_layer = 16
+collision_mask = 16
+motion_mode = 1
 script = ExtResource("1_opbhl")
+
+[node name="col" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_ekhvv")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 current = true
+script = ExtResource("2_0pl66")
+
+[node name="Limits" type="Node" parent="."]
+
+[node name="TopLeft" type="Node2D" parent="Limits"]
+
+[node name="BottomRight" type="Node2D" parent="Limits"]
+position = Vector2(1280, 720)

@@ -1,0 +1,29 @@
+[gd_scene load_steps=3 format=3 uid="uid://bj6qli1vd81n8"]
+
+[ext_resource type="Theme" uid="uid://d1eqltks17au2" path="res://prefabs/ui/tooltip_theme.tres" id="1_ywdy1"]
+[ext_resource type="Script" path="res://prefabs/ui/unit_tooltip.gd" id="2_3dgcc"]
+
+[node name="Unit_Tooltip" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -930.0
+offset_bottom = -520.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_ywdy1")
+script = ExtResource("2_3dgcc")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="Name Label" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Unit Name: "

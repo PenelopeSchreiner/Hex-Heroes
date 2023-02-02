@@ -1,31 +1,88 @@
-[gd_scene load_steps=6 format=3 uid="uid://d2u8rum75ismr"]
+[gd_scene load_steps=15 format=3 uid="uid://d2u8rum75ismr"]
 
 [ext_resource type="PackedScene" uid="uid://u1sk4jmnr58t" path="res://prefabs/hex_map.tscn" id="1_1m5ek"]
 [ext_resource type="Script" path="res://scripts/world.gd" id="1_iuvhf"]
 [ext_resource type="Texture2D" uid="uid://dfoxuguhudcxg" path="res://textures/tiles/hex-tiles.png" id="2_p4k2k"]
+[ext_resource type="Texture2D" uid="uid://bs5puvec4b43t" path="res://textures/tiles/map-nodes.png" id="4_2cfyg"]
+[ext_resource type="PackedScene" uid="uid://o6cdbs45ntc6" path="res://tile_tooltip.tscn" id="5_cr357"]
+[ext_resource type="PackedScene" uid="uid://bj6qli1vd81n8" path="res://prefabs/ui/unit_tooltip.tscn" id="6_eeb1c"]
+[ext_resource type="Script" path="res://prefabs/managers/UnitSpawner.gd" id="6_s80ya"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_tgutb"]
 texture = ExtResource("2_p4k2k")
+separation = Vector2i(1, 1)
 use_texture_padding = false
 0:0/0 = 0
+0:0/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+0:0/0/physics_layer_0/angular_velocity = 0.0
 1:0/0 = 0
+1:0/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+1:0/0/physics_layer_0/angular_velocity = 0.0
 2:0/0 = 0
+2:0/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+2:0/0/physics_layer_0/angular_velocity = 0.0
 3:0/0 = 0
+3:0/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+3:0/0/physics_layer_0/angular_velocity = 0.0
 4:0/0 = 0
+4:0/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+4:0/0/physics_layer_0/angular_velocity = 0.0
 0:1/0 = 0
+0:1/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+0:1/0/physics_layer_0/angular_velocity = 0.0
 1:1/0 = 0
+1:1/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+1:1/0/physics_layer_0/angular_velocity = 0.0
 2:1/0 = 0
+2:1/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+2:1/0/physics_layer_0/angular_velocity = 0.0
 3:1/0 = 0
+3:1/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+3:1/0/physics_layer_0/angular_velocity = 0.0
 4:1/0 = 0
+4:1/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+4:1/0/physics_layer_0/angular_velocity = 0.0
 5:1/0 = 0
+5:1/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+5:1/0/physics_layer_0/angular_velocity = 0.0
 6:1/0 = 0
+6:1/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+6:1/0/physics_layer_0/angular_velocity = 0.0
 5:0/0 = 0
+5:0/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+5:0/0/physics_layer_0/angular_velocity = 0.0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_trwur"]
+texture = ExtResource("4_2cfyg")
+0:0/0 = 0
+0:0/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+0:0/0/physics_layer_0/angular_velocity = 0.0
+1:0/0 = 0
+1:0/0/physics_layer_0/linear_velocity = Vector2(0, 0)
+1:0/0/physics_layer_0/angular_velocity = 0.0
 
 [sub_resource type="TileSet" id="TileSet_q2bti"]
 tile_shape = 3
 tile_layout = 1
 tile_offset_axis = 1
+physics_layer_0/collision_layer = 1
 sources/0 = SubResource("TileSetAtlasSource_tgutb")
+sources/1 = SubResource("TileSetAtlasSource_trwur")
+
+[sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_ugm8c"]
+normal = Vector2(1, 0)
+distance = 0.01
+
+[sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_wiky3"]
+normal = Vector2(-1, 0)
+distance = 0.01
+
+[sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_e623a"]
+normal = Vector2(0, 1)
+distance = 0.01
+
+[sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_j0b0k"]
+distance = 0.01
 
 [node name="World" type="Node2D" groups=["World"]]
 script = ExtResource("1_iuvhf")
@@ -36,3 +93,62 @@ layer_0/y_sort_enabled = true
 layer_1/z_index = 1
 
 [node name="Player_Holder" type="Node" parent="."]
+
+[node name="Main Canvas" type="CanvasLayer" parent="."]
+
+[node name="Tile_Tooltip" parent="Main Canvas" instance=ExtResource("5_cr357")]
+offset_right = 250.0
+
+[node name="Unit_Tooltip" parent="Main Canvas" instance=ExtResource("6_eeb1c")]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_right = 0.0
+offset_top = -106.0
+offset_right = 245.0
+offset_bottom = 0.0
+grow_horizontal = 1
+grow_vertical = 0
+
+[node name="BG" type="ColorRect" parent="."]
+z_index = -100
+z_as_relative = false
+offset_left = -2000.0
+offset_top = -2500.0
+offset_right = 3000.0
+offset_bottom = 2500.0
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Cam_Blocker_Left" type="StaticBody2D" parent="."]
+collision_layer = 16
+collision_mask = 16
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Cam_Blocker_Left"]
+shape = SubResource("WorldBoundaryShape2D_ugm8c")
+
+[node name="Cam_Blocker_Right" type="StaticBody2D" parent="."]
+position = Vector2(1600, 0)
+collision_layer = 16
+collision_mask = 16
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Cam_Blocker_Right"]
+shape = SubResource("WorldBoundaryShape2D_wiky3")
+
+[node name="Cam_Blocker_Top" type="StaticBody2D" parent="."]
+position = Vector2(250, 0)
+collision_layer = 16
+collision_mask = 16
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Cam_Blocker_Top"]
+shape = SubResource("WorldBoundaryShape2D_e623a")
+
+[node name="Cam_Blocker_Bot" type="StaticBody2D" parent="."]
+position = Vector2(235, 800)
+collision_layer = 16
+collision_mask = 16
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Cam_Blocker_Bot"]
+shape = SubResource("WorldBoundaryShape2D_j0b0k")
+
+[node name="UnitSpawner" type="Node" parent="."]
+script = ExtResource("6_s80ya")

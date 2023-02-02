@@ -1,0 +1,49 @@
+[gd_scene load_steps=3 format=3 uid="uid://o6cdbs45ntc6"]
+
+[ext_resource type="Script" path="res://prefabs/ui/Tile_Tooltip.gd" id="1_uvuel"]
+[ext_resource type="Theme" uid="uid://d1eqltks17au2" path="res://prefabs/ui/tooltip_theme.tres" id="1_vle7c"]
+
+[node name="Tile_Tooltip" type="PanelContainer"]
+offset_right = 204.0
+offset_bottom = 186.0
+theme = ExtResource("1_vle7c")
+script = ExtResource("1_uvuel")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="Tile Biome" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Tile: Snow"
+
+[node name="Elv Label" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Elevation: 0
+"
+
+[node name="Rain Label" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Rainfall: 0
+"
+
+[node name="Node Label" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Node: None
+"
+
+[node name="-buffer-" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "
+"
+
+[node name="Pos Label" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Pos:
+"

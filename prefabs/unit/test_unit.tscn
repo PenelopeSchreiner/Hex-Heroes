@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://0iemt3yvw6gm"]
+
+[ext_resource type="Script" path="res://prefabs/unit/test_unit.gd" id="1_2vwkk"]
+
+[node name="TestUnit" type="Node2D"]
+script = ExtResource("1_2vwkk")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+z_index = 50
+offset = Vector2(0, -8)

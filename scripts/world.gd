@@ -5,7 +5,33 @@ extends Node2D
 @onready var map = $"hex-map"
 var map_tiles
 
-var map_size = Vector2i(100, 50)
+@onready var unitSpawner = $UnitSpawner
+
+var map_size = Vector2i(100, 75)
+var world_size := Vector2i(0, 0)
+
+# ----- TILES
+
+var tile_dict = {
+	Vector2i(0, 0) : "Water",
+	Vector2i(5, 1) : "Snow",
+	Vector2i(4, 1) : "Mountain",
+	Vector2i(6, 1) : "Tundra",
+	Vector2i(2, 1) : "Taiga",
+	Vector2i(2, 0) : "Temperate Forest",
+	Vector2i(1, 0) : "Tropical Rainforest",
+	Vector2i(5, 0) : "Swamp",
+	Vector2i(4, 0) : "Temperate Grasslands",
+	Vector2i(0, 1) : "Savanna",
+	Vector2i(1, 1) : "Desert",
+	
+	Vector2i(3, 1) : "Debug"
+}
+
+var node_types : Array = [
+	"Hill",
+	"Mountain"
+]
 
 #var heat_seed = randi_range(0, 1000000)
 var rain_seed = randi_range(0, 1000000)
@@ -24,11 +50,26 @@ var elv_params = [elv_seed, 0.025, 1.0, 4]
 var rain_n_dict = {}
 var elv_n_dict = {}
 
+# - resource/event/terrain nodes
+var poi_nodes_dict = {}
+
+
+# world boundaries
+@onready var blocker_left = $Cam_Blocker_Left
+@onready var blocker_right = $Cam_Blocker_Right
+@onready var blocker_top = $Cam_Blocker_Top
+@onready var blocker_bot = $Cam_Blocker_Bot
 
 
 var prefab_player = preload("res://prefabs/player/player_controller.tscn")
 var player_list := []
 var local_player
+
+# ----- UI
+@onready var tile_tooltip = $"Main Canvas/Tile_Tooltip"
+@onready var unit_tooltip = $"Main Canvas/Unit_Tooltip"
+
+
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -41,7 +82,19 @@ func _ready():
 	# spawn local player
 	local_player = prefab_player.instantiate()
 	player_holder.add_child(local_player)
-	local_player.position = map_size / 2 * map.tile_set.tile_size
+	#local_player.position = map_size / 2 * map.tile_set.tile_size
+	local_player.initialize()
+	
+	# get world size
+	world_size = map_size * map.tile_set.tile_size
+	world_size.x = world_size.x * 0.75
+	
+	# - set blockers
+	blocker_right.position.x = world_size.x
+	blocker_bot.position.y = world_size.y
+	
+	# -- initialize spawners
+	unitSpawner.initialize()
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -65,6 +118,11 @@ func generate_map():
 		generateBaseNoise(rain_params, elv_params)
 		generateSliomes(map_size)
 		set_tiles_based_on_values()
+		
+		
+		fill_poi_nodes()
+		clear_nodes_on_map()
+		set_nodes_on_map()
 		
 		land_percent = get_percent_land()
 		print(land_percent)
@@ -205,6 +263,13 @@ func generate_map():
 #	pass
 
 
+func fill_poi_nodes() -> void:
+	
+	for x in map_size.x:
+		for y in map_size.y:
+			var cell := Vector2i(x, y)
+			
+			poi_nodes_dict[cell] = "None"
 
 func fillMapWithWater(size : Vector2i):
 	for x in size.x:
@@ -337,19 +402,34 @@ func set_tiles_based_on_values():
 			var new_rain_val : float = (rain_n_dict[cell] - -1.0) / (1.0 - -1.0) * (1.0 - 0.0) + 0.0
 			var new_elv_val : float = (elv_n_dict[cell] - -1.0) / (1.0 - -1.0) * (1.0 - 0.0) + 0.0
 			
+			# update noise dicts to remapped values
+			rain_n_dict[cell] = new_rain_val
+			elv_n_dict[cell] = new_elv_val
+			
+			
 			var lat_mod : float = randi_range(0, 3)
 			
 			
 			if new_elv_val > 0.9:
-				# mountain
+				
+				if new_rain_val > 0.5:
+					# snowy mountain
+					map.set_cell(0, cell, 0, Vector2i(5, 1))
+				else:
+					# mountain
 					map.set_cell(0, cell, 0, Vector2i(4, 1))
-			elif new_elv_val < 0.5:
+			elif new_elv_val < 0.45:
+				
 				# water
 				map.set_cell(0, cell, 0, Vector2i(0, 0))
 			else:
-				# not the ocean or a mountain
+				# not water or a mountain
+				
+				# --- ELV: 0.45 -> 0.9 ---
 				
 				# ----- NORTH POLE
+				
+				# 0 -> 13
 				if y < map_size.y * 0.05 + lat_mod:
 				
 					# snow or ice over water
@@ -370,11 +450,13 @@ func set_tiles_based_on_values():
 					else:
 						# snow
 						map.set_cell(0, cell, 0, Vector2i(5, 1))
+				
 				# -----
 				
 				
 				# ----- SOUTH POLE
 				
+				# map_size.y - 0.13 -> map_size.y
 				elif y > map_size.y - map_size.y * 0.05 + lat_mod:
 					
 					# snow or ice over water
@@ -395,15 +477,20 @@ func set_tiles_based_on_values():
 					else:
 						# snow
 						map.set_cell(0, cell, 0, Vector2i(5, 1))
+				
 				# -----
 				
 				# ----- EQUATOR
 				
-				elif y > map_size.y * 0.5 - lat_mod and y < map_size.y * 0.5 + lat_mod:
+				# 50 -> 60
+				elif y > map_size.y * 0.50 - lat_mod and y < map_size.y * 0.60 + lat_mod:
+					#print("-- Equator span --")
+					#print(map_size.y * 0.5 - lat_mod)
+					#print(map_size.y * 0.6 + lat_mod)
 					# mostly deserts, tropical rainforests, and savannas
 					
-					if new_elv_val < 0.75:
-						# lower elevations
+					if new_elv_val < 0.55:
+						# 0.45 -> 0.55
 						
 						if new_rain_val > 0.65:
 							# trop rainforest
@@ -414,12 +501,24 @@ func set_tiles_based_on_values():
 						else:
 							# desert
 							map.set_cell(0, cell, 0, Vector2i(1, 1))
+					elif new_elv_val > 0.75:
+						# 0.75 -> 0.9
+						
+						if new_rain_val > 0.4:
+							# taiga
+							map.set_cell(0, cell, 0, Vector2i(2, 1))
+						elif new_rain_val > 0.3:
+							# tundra
+							map.set_cell(0, cell, 0, Vector2i(6, 1))
+						else:
+							# mountain
+							map.set_cell(0, cell, 0, Vector2i(4, 1))
 					else:
-						# higher elevations
+						# 0.55 -> 0.75
 						
 						# more likely to be trop rainforest or savanna
 						
-						if new_rain_val > 0.45:
+						if new_rain_val > 0.65:
 							# trop rainforest
 							map.set_cell(0, cell, 0, Vector2i(1, 0))
 						elif new_rain_val > 0.15:
@@ -433,8 +532,9 @@ func set_tiles_based_on_values():
 				
 				# ----- SUBTROPICAL
 				
-				# 35 -> 45
-				elif y > map_size.y * 0.35 - lat_mod and y < map_size.y * 0.45 + lat_mod:
+				# 35 -> 52
+				elif y > map_size.y * 0.35 - lat_mod and y < map_size.y * 0.52 + lat_mod:
+					#print("in northern subtrop")
 					# - cooler but more varied than closer to the equator
 					
 					if new_elv_val < 0.65:
@@ -452,21 +552,40 @@ func set_tiles_based_on_values():
 								# trop rainforest
 								map.set_cell(0, cell, 0, Vector2i(1, 0))
 						elif new_rain_val > 0.3:
-							var n = randf_range(0.0, 100.0)
 							
-							if n > 75.0:
+							#var n = randf_range(0.0, 100.0)
+							
+							#if n > 75.0:
 								# savanna
-								map.set_cell(0, cell, 0, Vector2i(0, 1))
-							else:
+							map.set_cell(0, cell, 0, Vector2i(0, 1))
+							#else:
 								# temp grassland
-								map.set_cell(0, cell, 0, Vector2i(4, 0))
+							#	map.set_cell(0, cell, 0, Vector2i(4, 0))
 						else:
 							# desert
-								map.set_cell(0, cell, 0, Vector2i(1, 1))
+							map.set_cell(0, cell, 0, Vector2i(1, 1))
+					elif new_elv_val > 0.75:
+						# 0.75 - 0.9
+						
+						if new_rain_val > 0.4:
+							# taiga
+							map.set_cell(0, cell, 0, Vector2i(2, 1))
+						else:
+							# mountain
+							map.set_cell(0, cell, 0, Vector2i(4, 1))
+					else:
+						# 0.65 -> 0.75
+						
+						if new_rain_val > 0.5:
+							# wetter and cooler
+							# trop forest
+							map.set_cell(0, cell, 0, Vector2i(1, 0))
+						else:
+							# desert
+							map.set_cell(0, cell, 0, Vector2i(1, 1))
 				
-				
-				# 55 -> 65
-				elif y > map_size.y * 0.55 - lat_mod and y < map_size.y * 0.65 + lat_mod:
+				# 58 -> 75
+				elif y > map_size.y * 0.58 - lat_mod and y < map_size.y * 0.75 + lat_mod:
 					# - cooler but more varied than closer to the equator
 					
 					if new_elv_val < 0.65:
@@ -484,128 +603,120 @@ func set_tiles_based_on_values():
 								# trop rainforest
 								map.set_cell(0, cell, 0, Vector2i(1, 0))
 						elif new_rain_val > 0.3:
-							# - grasslands
-							var n = randf_range(0.0, 100.0)
 							
-							if n > 75.0:
+							#var n = randf_range(0.0, 100.0)
+							
+							#if n > 75.0:
 								# savanna
-								map.set_cell(0, cell, 0, Vector2i(0, 1))
-							else:
+							map.set_cell(0, cell, 0, Vector2i(0, 1))
+							#else:
 								# temp grassland
-								map.set_cell(0, cell, 0, Vector2i(4, 0))
+							#	map.set_cell(0, cell, 0, Vector2i(4, 0))
 						else:
 							# desert
-								map.set_cell(0, cell, 0, Vector2i(1, 1))
-					
+							map.set_cell(0, cell, 0, Vector2i(1, 1))
+					elif new_elv_val > 0.75:
+						# 0.75 - 0.9
+						
+						if new_rain_val > 0.4:
+							# taiga
+							map.set_cell(0, cell, 0, Vector2i(2, 1))
+						else:
+							# mountain
+							map.set_cell(0, cell, 0, Vector2i(4, 1))
+					else:
+						# 0.65 -> 0.75
+						
+						if new_rain_val > 0.5:
+							# wetter and cooler
+							# trop forest
+							map.set_cell(0, cell, 0, Vector2i(1, 0))
+						else:
+							# desert
+							map.set_cell(0, cell, 0, Vector2i(1, 1))
 				# -----
 				
+				# 13 -> 35
+				# 75 -> 88
 				else:
+					
+					#print(str(y) + ", " + str(cell))
+					# --- between the poles and subtrop regions
+					#map.set_cell(0, cell, 0, Vector2i(3, 1))
 					
 					if new_elv_val > 0.7:
 						# taiga or tundra
+
 						if new_rain_val > 0.3:
 							# taiga
-							map.set_cell(0, cell, 0, Vector2i(3, 0))
+							map.set_cell(0, cell, 0, Vector2i(2, 1))
 						else:
 							# tundra
 							map.set_cell(0, cell, 0, Vector2i(6, 1))
 					elif new_elv_val > 0.5:
 						# colder and higher
-						
+
 						if new_rain_val > 0.65:
 							# temp forest
 							map.set_cell(0, cell, 0, Vector2i(2, 0))
 						elif new_rain_val > 0.3:
 							# temp grasslands
 							map.set_cell(0, cell, 0, Vector2i(4, 0))
+						else:
+							# desert
+							map.set_cell(0, cell, 0, Vector2i(1, 1))
 					else:
 						# lower and warmer
-						
+
 						if new_rain_val > 0.6:
 							# temp forest
 							map.set_cell(0, cell, 0, Vector2i(2, 0))
 						elif new_rain_val > 0.3:
 							# temp grasslands
 							map.set_cell(0, cell, 0, Vector2i(4, 0))
-				
-#				else:
-#					# ----- FILLER LAND
-#
-#					# fill gen holes with temperate grasslands nearer to poles
-#					if y < map_size.y * 0.12 or y > map_size.y - map_size.y * 0.2:
-#						map.set_cell(0, cell, 0, Vector2i(3, 0))
-#
-#					elif y > map_size.y / 2 - map_size.y * 0.05 and y < map_size.y / 2 + map_size.y * 0.05:
-#						# sub trop filler
-#						if new_rain_val > 0.75:
-#							# swamp
-#							map.set_cell(0, cell, 0, Vector2i(1, 0))
-#						elif new_rain_val < 0.35:
-#							# savanna
-#							map.set_cell(0, cell, 0, Vector2i(0, 1))
-#					else:
-#						# the rest
-#
-#						if new_rain_val > 0.6:
-#							# temp forest
-#							map.set_cell(0, cell, 0, Vector2i(4, 0))
-#						elif new_rain_val > 0.25:
-#							# temp grassland
-#							map.set_cell(0, cell, 0, Vector2i(3, 0))
-						
-			
-#			if elv_n_dict[cell] > 0.8:
-#				# mountain
-#				map.set_cell(0, cell, 0, Vector2i(3, 0))
-#			elif elv_n_dict[cell] < 0.15:
-#				# water
-#				map.set_cell(0, cell, 0, Vector2i(1, 0))
-#			else:
-#				# check heat and rain noise maps to determine biomes
-#
-#				if heat_n_dict[cell] > 0.75:
-#					# desert, swamp, rainforest, savannah
-#					if rain_n_dict[cell] > 0.6:
-#
-#						if elv_n_dict[cell] > 0.35:
-#							# rainforest
-#							map.set_cell(0, cell, 0, Vector2i(0, 0))
-#						else:
-#							# swamp
-#							map.set_cell(0, cell, 0, Vector2i(0, 1))
-#					elif rain_n_dict[cell] > 0.25:
-#						# savannah
-#						map.set_cell(0, cell, 0, Vector2i(1, 1))
-#					else:
-#						# desert
-#						map.set_cell(0, cell, 0, Vector2i(5, 0))
-#				elif heat_n_dict[cell] > 0.5:
-#					# temperate
-#					if rain_n_dict[cell] > 0.5:
-#						# forest
-#						map.set_cell(0, cell, 0, Vector2i(6, 1))
-#					else:
-#						# grasslands
-#						map.set_cell(0, cell, 0, Vector2i(0, 0))
-#				elif heat_n_dict[cell] > 0.2:
-#						# grasslands
-#						map.set_cell(0, cell, 0, Vector2i(0, 0))
-#				else:
-#						# snow
-#						map.set_cell(0, cell, 0, Vector2i(4, 0))
-#				elif heat_n_dict[cell] > -0.25:
-#					# colder
-#					if rain_n_dict[cell] > 0:
-#						# snowy
-#						map.set_cell(0, cell, 0, Vector2i(4, 0))
-#					else:
-#						# tundra
-#						map.set_cell(0, cell, 0, Vector2i(7, 0))
-#				else:
-#					# just ice
-#						map.set_cell(0, cell, 0, Vector2i(7, 0))
-	pass
+						else:
+							# desert
+							map.set_cell(0, cell, 0, Vector2i(1, 1))
 
+
+func clear_nodes_on_map():
+	
+	for x in map_size.x:
+		for y in map_size.y:
+			
+			var cell := Vector2i(x, y)
+			
+			map.set_cell(1, cell, -1)
+
+func set_nodes_on_map():
+	# use noise values and node generation to place
+	# nodes on the map, resource and terrain nodes
+	
+	for x in map_size.x:
+		for y in map_size.y:
+			
+			var cell := Vector2i(x, y)
+			
+			#var new_rain_val : float = (rain_n_dict[cell] - -1.0) / (1.0 - -1.0) * (1.0 - 0.0) + 0.0
+			#var new_elv_val : float = (elv_n_dict[cell] - -1.0) / (1.0 - -1.0) * (1.0 - 0.0) + 0.0
+			
+			
+			# ----- TERRAIN NODES
+			
+			if elv_n_dict[cell] > 0.9:
+				# mountain
+				map.set_cell(1, cell, 1, Vector2i(1, 0))
+				
+				# - update nodes dict
+				poi_nodes_dict[cell] = node_types[1]
+			elif elv_n_dict[cell] > 0.7:
+				# hills
+				map.set_cell(1, cell, 1, Vector2i(0, 0))
+			
+				# - update nodes dict
+				poi_nodes_dict[cell] = node_types[0]
+			# -----
+	
 
 func get_neighbor_cells(pos : Vector2i) -> Array:
 	var arr := []
@@ -655,3 +766,40 @@ func get_percent_land() -> float:
 			land_cells += 1
 	
 	return float(land_cells) / float(total_cells)
+
+
+func get_map() -> Node:
+	return map
+
+func get_player_holder() -> Node:
+	return player_holder
+
+
+func _unhandled_input(event):
+	if event is InputEventMouseMotion:
+		
+		if local_player.selector.visible == false:
+			local_player.selector.show()
+		
+		var local_pos = map.get_global_mouse_position()
+		var map_pos = map.local_to_map(Vector2i(round(local_pos.x), round(local_pos.y)))
+		
+		if map_pos.x >= 0 and map_pos.x < map_size.x and map_pos.y >= 0 and map_pos.y < map_size.y:
+			local_player.selector.position = map.map_to_local(map_pos)
+			
+			# get tile data
+			var elv : float = elv_n_dict[map_pos]
+			var rain : float = rain_n_dict[map_pos]
+			var node : String = poi_nodes_dict[map_pos]
+			
+			tile_tooltip.set_values(tile_dict[map.get_cell_atlas_coords(0, map_pos)], elv, rain, node, map_pos)
+			
+			
+			# get unit data
+			var spawned_units : Array = unitSpawner.spawned_units
+			
+			for u in spawned_units:
+				if u.grid_pos == map_pos:
+					print("unit at: " + str(map_pos))
+					# there is a unit on this tile
+					unit_tooltip.set_values(u.unit_name)
